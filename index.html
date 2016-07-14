@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Backbone initialize</title>
+
+    <link href="app/app.css" rel="stylesheet" media="all" />
+
+    <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="bower_components/underscore/underscore-min.js"></script>
+    <script src="bower_components/backbone/backbone-min.js"></script>
+    <script src="bower_components/marionette/lib/backbone.marionette.min.js"></script>
+    <script src="dist/backbone-initialize.js"></script>
+
+    <script id="jsTodoItemView" type="text/html">
+        <li><input type="checkbox" <%= checked %> class="jsCheckbox"> <%= title %> <a class="jsDeleteItem delete-button" alt="">[X]</a></li>
+    </script>
+
+    <script id="jsTodoCollectionView" type="text/html">
+        <h3><%= todoList %></h3>
+        <div class="controls">
+            <button class="jsAddItem"><%= addItem %></button>
+            <button class="jsChangeLanguage"><%= changeLanguage %></button>
+        </div>
+        <ul class="jsTodoListContainer"></ul>
+    </script>
+
+    <script src="app/app.js"></script>
+</head>
+<body>
+    <div class="jsTodoList todo-list"></div>
+</body>
+</html>
