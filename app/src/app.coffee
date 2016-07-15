@@ -27,7 +27,7 @@ class TodoItem extends Backbone.Model
     onLanguageChanged: ->
         @set 'title', "#{@translation.item} ##{@cid}"
 
-    ready: ->
+    launch: ->
 
 ###
     To-do collection
@@ -94,13 +94,6 @@ class TodoCollectionView extends Marionette.CompositeView
         @application.trigger 'changeLanguage', language
 
 
-    bootstrap: [
-        'initCollection'
-    ]
-
-    initCollection: ->
-
-
 ###
     Application layout
 ###
@@ -109,7 +102,7 @@ class ApplicationLayout extends Marionette.LayoutView
     regions:
         todoList: '.jsTodoList'
 
-    bootstrap: [
+    prepare: [
         'initializeTodoList'
     ]
 
@@ -127,7 +120,7 @@ class ApplicationLayout extends Marionette.LayoutView
 ###
 class Application extends Marionette.Application
     layout: null
-    ready: ->
+    launch: ->
         @layout = new ApplicationLayout
             attach:
                 application: @
@@ -143,7 +136,7 @@ setTranslations = (lang)->
     @trigger 'languageChanged', lang
 
 ###
-    Global babkbone initialize bootstrap function
+    Global backbone initialize prepare function
 ###
 SetTranslations = ->
     return unless Array.isArray @translationImport
@@ -157,7 +150,7 @@ SetTranslations = ->
     setTranslations.call @, language
     @templateHelpers = => @translation
 
-BackboneBootstrap.push SetTranslations
+BackbonePrepare.push SetTranslations
 
 
 # init

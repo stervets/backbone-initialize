@@ -4,12 +4,12 @@ class BackboneInitialize
 
     arrayFromString: (string)->
         return string if Array.isArray string
-        string.split(',').map (item)->item.trim()
+        string.split(',').map (item)-> item.trim()
 
     warn: (message)->
         console.warn "Backbone-initialize warn: #{message}"
 
-    getChild: (path, event, parent=@entity)->
+    getChild: (path, event, parent = @entity)->
         child = path.shift()
         if parent[child]?
             return if path.length then @getChild(path, event, parent[child]) else parent[child]
@@ -17,7 +17,7 @@ class BackboneInitialize
             @warn "#{child} undefined (this.#{event})"
             return null
 
-    addHandler: (event, handler, parent=@entity)->
+    addHandler: (event, handler, parent = @entity)->
         if typeof event is 'object'
             @addHandler(key, value, parent) for key, value of event
         else
@@ -32,8 +32,8 @@ class BackboneInitialize
                     handler = @arrayFromString handler
                 else
                     handler = [handler] unless Array.isArray handler
-                event = handler.shift() if event[0] is '_'
 
+                event = handler.shift() if event[0] is '_'
                 parentPath = event.split('.')
                 event = parentPath.pop()
                 if parentPath.length
@@ -51,47 +51,47 @@ class BackboneInitialize
                     if typeof handler is 'function'
                         @entity.listenTo parent, event, handler.bind(handlerParent)
                     else
-                        @warn "Can't find handler for \"#{event}\""+(if handlerName then ": \"#{handlerName}\"" else '')
+                        @warn "Can't find handler for \"#{event}\"" + (if handlerName then ": \"#{handlerName}\"" else '')
 
     addHandlers: ->
         @addHandler @entity.handlers if @entity.handlers? and !@entity.disableHandlers
 
-    ready: (params...)->
+    launch: (params...)->
         @addHandlers()
-        @entity.trigger 'ready', params...
+        @entity.trigger 'launch', params...
 
     constructor: (@entity)->
         @entity.addHandler = @addHandler.bind @
         @handlers = {}
 
 
-@BackboneBootstrap = BackboneBootstrap = []
+@BackbonePrepare = BackbonePrepare = []
 
 backboneInitialize = (params...)->
     options = @options
     options = params[1] if @ instanceof Backbone.Collection
-    return unless typeof @handlers is 'object' or options?.attach? or typeof @ready is 'function'
+    return unless typeof @handlers is 'object' or options?.attach? or typeof @launch is 'function'
     @_bbInitialize = new BackboneInitialize @
 
-    @addHandler('ready', @ready) if typeof @ready is 'function'
+    @addHandler('launch', @launch) if typeof @launch is 'function'
 
     if options?.attach?
         @[name] = object for name, object of options.attach
 
-    if BackboneBootstrap.length or Array.isArray @bootstrap
-        @bootstrap ||= []
-        @bootstrap = BackboneBootstrap.concat @bootstrap
-        bootstrap = @bootstrap.map ((name)=>
-            bootstrapFunction = if typeof name is 'function' then name else @[name]
-            unless typeof bootstrapFunction is 'function'
-                @_bbInitialize.warn "Bootstrap item #{name} isn't function"
-                bootstrapFunction = $.noop;
-            bootstrapFunction.apply @, params
+    if BackbonePrepare.length or Array.isArray @prepare
+        @prepare ||= []
+        @prepare = BackbonePrepare.concat @prepare
+        prepare = @prepare.map ((name)=>
+            prepareFunction = if typeof name is 'function' then name else @[name]
+            unless typeof prepareFunction is 'function'
+                @_bbInitialize.warn "Prepare item #{name} isn't function"
+                prepareFunction = $.noop;
+            prepareFunction.apply @, params
         )
-        $.when.apply(null, bootstrap).then =>
-            @_bbInitialize.ready params...
+        $.when.apply(null, prepare).then =>
+            @_bbInitialize.launch params...
     else
-        @_bbInitialize.ready params...
+        @_bbInitialize.launch params...
 
 Backbone.Model.prototype.initialize = backboneInitialize
 Backbone.Collection.prototype.initialize = backboneInitialize
