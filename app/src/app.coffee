@@ -35,7 +35,6 @@ class TodoItem extends Backbone.Model
 class TodoCollection extends Backbone.Collection
     model: TodoItem
 
-
 ###
     To-do item view
 ###
@@ -54,8 +53,6 @@ class TodoItemView extends Marionette.ItemView
 
     handlers:
         'model.change': 'render'
-
-    onCheckboxClick: -> false
 
     deleteItem: ->
         @remove()

@@ -17,27 +17,30 @@ class BackboneInitialize
             @warn "#{child} undefined (this.#{event})"
             return null
 
-    addHandler: (event, handler, parent = @entity)->
-        if typeof event is 'object'
-            @addHandler(key, value, parent) for key, value of event
+    addHandler: (events, handler, parent = @entity)->
+        if typeof events is 'object'
+            @addHandler(key, value, parent) for key, value of events
         else
             if typeof handler is 'object' and !(Array.isArray(handler))
-                if (child = @getChild event.split('.'), event, parent)
-                    for key, val of handler
-                        @addHandler key, val, child
-                else
-                    @warn "Can't append handlers to #{event} cause child not found"
-            else
-                if typeof handler is 'string'
-                    handler = @arrayFromString handler
-                else
-                    handler = [handler] unless Array.isArray handler
+                @arrayFromString(events).forEach (event)=>
+                    if (child = @getChild event.split('.'), event, parent)
+                        for key, val of handler
+                            @addHandler key, val, child
+                    else
+                        @warn "Can't append handlers to #{event} cause child not found"
+                return
 
-                event = handler.shift() if event[0] is '_'
+            handler = @arrayFromString handler if typeof handler is 'string'
+            handler = [handler] unless Array.isArray handler
+            handler = handler.slice()
+            events = handler.shift() if events[0] is '_'
+
+            @arrayFromString(events).forEach (event)=>
+                eventParent = parent
                 parentPath = event.split('.')
                 event = parentPath.pop()
                 if parentPath.length
-                    return unless (parent = @getChild(parentPath, parentPath.join('.'), parent))
+                    return unless (eventParent = @getChild(parentPath, parentPath.join('.'), eventParent))
 
                 handler.forEach (handler)=>
                     handlerName = false
@@ -49,7 +52,7 @@ class BackboneInitialize
                         return unless (handlerParent = if child.length then @getChild(child, handlerName) else @entity)
                         handler = handlerParent[handler]
                     if typeof handler is 'function'
-                        @entity.listenTo parent, event, handler.bind(handlerParent)
+                        @entity.listenTo eventParent, event, handler.bind(handlerParent)
                     else
                         @warn "Can't find handler for \"#{event}\"" + (if handlerName then ": \"#{handlerName}\"" else '')
 
