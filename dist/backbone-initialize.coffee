@@ -72,7 +72,7 @@ class BackboneInitialize
 
 backboneInitialize = (params...)->
     options = @options
-    options = params[1] if @ instanceof Backbone.Collection
+    options = params[1] unless options?
     @prepare = arrayFromString(@prepare) if typeof @prepare is 'string'
     return unless typeof @handlers is 'object' or options?.attach? or typeof @launch is 'function' or Array.isArray(@prepare)
     @_bbInitialize = new BackboneInitialize @
