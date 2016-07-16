@@ -1,10 +1,10 @@
+arrayFromString = (string)->
+    return string if Array.isArray string
+    string.split(',').map (item)-> item.trim()
+
 class BackboneInitialize
     handlers: null
     entity: null
-
-    arrayFromString: (string)->
-        return string if Array.isArray string
-        string.split(',').map (item)-> item.trim()
 
     warn: (message)->
         console.warn "Backbone-initialize warn: #{message}"
@@ -22,7 +22,7 @@ class BackboneInitialize
             @addHandler(key, value, parent) for key, value of events
         else
             if typeof handler is 'object' and !(Array.isArray(handler))
-                @arrayFromString(events).forEach (event)=>
+                arrayFromString(events).forEach (event)=>
                     if (child = @getChild event.split('.'), event, parent)
                         for key, val of handler
                             @addHandler key, val, child
@@ -30,12 +30,12 @@ class BackboneInitialize
                         @warn "Can't append handlers to #{event} cause child not found"
                 return
 
-            handler = @arrayFromString handler if typeof handler is 'string'
+            handler = arrayFromString handler if typeof handler is 'string'
             handler = [handler] unless Array.isArray handler
             handler = handler.slice()
             events = handler.shift() if events[0] is '_'
 
-            @arrayFromString(events).forEach (event)=>
+            arrayFromString(events).forEach (event)=>
                 eventParent = parent
                 parentPath = event.split('.')
                 event = parentPath.pop()
@@ -73,9 +73,9 @@ class BackboneInitialize
 backboneInitialize = (params...)->
     options = @options
     options = params[1] if @ instanceof Backbone.Collection
-    return unless typeof @handlers is 'object' or options?.attach? or typeof @launch is 'function'
+    @prepare = arrayFromString(@prepare) if typeof @prepare is 'string'
+    return unless typeof @handlers is 'object' or options?.attach? or typeof @launch is 'function' or Array.isArray(@prepare)
     @_bbInitialize = new BackboneInitialize @
-
     @addHandler('launch', @launch) if typeof @launch is 'function'
 
     if options?.attach?
@@ -91,7 +91,7 @@ backboneInitialize = (params...)->
                 prepareFunction = $.noop;
             prepareFunction.apply @, params
         )
-        $.when.apply(null, prepare).then =>
+        @promise = $.when.apply(null, prepare).then =>
             @_bbInitialize.launch params...
     else
         @_bbInitialize.launch params...
@@ -99,6 +99,9 @@ backboneInitialize = (params...)->
 Backbone.Model.prototype.initialize = backboneInitialize
 Backbone.Collection.prototype.initialize = backboneInitialize
 Backbone.View.prototype.initialize = backboneInitialize
+
+if Backbone.NestedModel?
+    Backbone.NestedModel.prototype.initialize = backboneInitialize
 
 if Backbone.Layout?
     Backbone.Layout.prototype.initialize = backboneInitialize
