@@ -70,6 +70,15 @@ class BackboneInitialize
 
 @BackbonePrepare = BackbonePrepare = []
 
+executeDeferredChain = (prepare, params, context, defer)->
+    promise = prepare.shift()
+    $.when(promise.apply(context, params)).then ->
+            if prepare.length
+                executeDeferredChain prepare, params, context, defer
+            else
+                defer.resolve()
+
+
 backboneInitialize = (params...)->
     options = @options
     options = params[1] unless options?
@@ -89,10 +98,14 @@ backboneInitialize = (params...)->
             unless typeof prepareFunction is 'function'
                 @_bbInitialize.warn "Prepare item #{name} isn't function"
                 prepareFunction = $.noop;
-            prepareFunction.apply @, params
+            prepareFunction
         )
-        @promise = $.when.apply(null, prepare).then =>
+
+        defer = $.Deferred()
+        defer.then =>
             @_bbInitialize.launch params...
+        executeDeferredChain prepare, params, @, defer
+        @promise = defer.promise()
     else
         @_bbInitialize.launch params...
 
