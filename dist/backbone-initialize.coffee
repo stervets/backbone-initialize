@@ -65,6 +65,9 @@ class BackboneInitialize
 
     constructor: (@entity)->
         @entity.addHandler = @addHandler.bind @
+        unless @entity.noBind?
+            for name, method of @entity when typeof method is 'function'
+                @entity[name] = method.bind @entity
         @handlers = {}
 
 
