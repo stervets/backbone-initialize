@@ -1,6 +1,16 @@
+KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+KEY_LENGTH = KEYS.length;
+@BackbonePrepare = BackbonePrepare = []
+
 arrayFromString = (string)->
     return string if Array.isArray string
     string.split(',').map (item)-> item.trim()
+
+genId = (length = 16, id = '')->
+    while (length-- > 0)
+        id += KEYS.charAt(Math.floor(Math.random() * KEY_LENGTH))
+        id += '-' unless !length or length % 4
+    id
 
 class BackboneInitialize
     handlers: null
@@ -16,6 +26,38 @@ class BackboneInitialize
         else
             @warn "#{child} undefined (this.#{event})"
             return null
+
+    eventHandler: (handlerKey)->
+        handlers = @handlers[handlerKey]
+        (params...)=>
+            @executeChain handlers, params
+
+    executeChain: (chain, params, context = @entity, defer)->
+        unless defer?
+            defer = $.Deferred()
+            chain = chain.slice()
+
+        promise = chain.shift()
+        $.when(promise.apply(context, params))
+        .done(=>
+            if chain.length
+                @executeChain chain, params, context, defer
+            else
+                defer.resolve()
+        )
+        .fail(->
+            console.warn("Defer chain fail", promise)
+        )
+        defer.promise()
+
+    addListener: (subject, event, handler, context)->
+        subject._bbId = genId() unless subject._bbId?
+        handlerKey = "#{subject._bbId}-#{event}"
+        unless @handlers[handlerKey]?
+            @handlers[handlerKey] = []
+            @entity.listenTo subject, event, @eventHandler(handlerKey)
+        @handlers[handlerKey].push handler.bind(context)
+
 
     addHandler: (events, handler, parent = @entity)->
         if typeof events is 'object'
@@ -52,35 +94,52 @@ class BackboneInitialize
                         return unless (handlerParent = if child.length then @getChild(child, handlerName) else @entity)
                         handler = handlerParent[handler]
                     if typeof handler is 'function'
-                        @entity.listenTo eventParent, event, handler.bind(handlerParent)
+                        @addListener eventParent, event, handler, handlerParent
                     else
                         @warn "Can't find handler for \"#{event}\"" + (if handlerName then ": \"#{handlerName}\"" else '')
 
     addHandlers: ->
         @addHandler @entity.handlers if @entity.handlers? and !@entity.disableHandlers
 
-    launch: (params...)->
-        @addHandlers()
+    launch: (initHandlers, params...)->
+        @addHandlers() if initHandlers?
         @entity.trigger 'launch', params...
 
+    prepares: null
+    prepareAndLaunch: (params)->
+        initHandlers = !!@prepares
+        if BackbonePrepare.length or Array.isArray @entity.prepare
+            unless @prepares?
+                @entity.prepare ||= []
+                @entity.prepare = BackbonePrepare.concat @entity.prepare
+
+                @prepares = @entity.prepare.map ((name)=>
+                    prepareFunction = if typeof name is 'function' then name else @entity[name]
+                    unless typeof prepareFunction is 'function'
+                        @warn "Prepare item #{name} isn't function"
+                        prepareFunction = $.noop;
+                    prepareFunction
+                )
+
+            if @prepares.length
+                @entity.promise = @executeChain(@prepares, params)
+                @entity.promise
+                .done(=>
+                    @launch initHandlers, params...
+                )
+                .fail(->
+                    console.warn("Backbone initialize prepares fail: ", @prepares);
+                )
+                return
+        @launch initHandlers, params...
+
     constructor: (@entity)->
-        @entity.addHandler = @addHandler.bind @
         unless @entity.noBind?
             for name, method of @entity when typeof method is 'function'
                 @entity[name] = method.bind @entity
+        @entity.addHandler = @addHandler.bind @
+        @entity.executeChain = @executeChain.bind @
         @handlers = {}
-
-
-@BackbonePrepare = BackbonePrepare = []
-
-executeDeferredChain = (prepare, params, context, defer)->
-    promise = prepare.shift()
-    $.when(promise.apply(context, params)).then ->
-            if prepare.length
-                executeDeferredChain prepare, params, context, defer
-            else
-                defer.resolve()
-
 
 backboneInitialize = (params...)->
     options = @options
@@ -93,24 +152,9 @@ backboneInitialize = (params...)->
     if options?.attach?
         @[name] = object for name, object of options.attach
 
-    if BackbonePrepare.length or Array.isArray @prepare
-        @prepare ||= []
-        @prepare = BackbonePrepare.concat @prepare
-        prepare = @prepare.map ((name)=>
-            prepareFunction = if typeof name is 'function' then name else @[name]
-            unless typeof prepareFunction is 'function'
-                @_bbInitialize.warn "Prepare item #{name} isn't function"
-                prepareFunction = $.noop;
-            prepareFunction
-        )
-
-        defer = $.Deferred()
-        defer.then =>
-            @_bbInitialize.launch params...
-        executeDeferredChain prepare, params, @, defer
-        @promise = defer.promise()
-    else
-        @_bbInitialize.launch params...
+    @relaunch = =>
+        @_bbInitialize.prepareAndLaunch params
+    @relaunch()
 
 Backbone.Model.prototype.initialize = backboneInitialize
 Backbone.Collection.prototype.initialize = backboneInitialize
