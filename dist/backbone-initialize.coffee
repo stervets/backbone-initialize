@@ -107,7 +107,8 @@ class BackboneInitialize
 
     prepares: null
     prepareAndLaunch: (params)->
-        initHandlers = !!@prepares
+        @entity.firstLaunch = @prepares?
+
         if BackbonePrepare.length or Array.isArray @entity.prepare
             unless @prepares?
                 @entity.prepare ||= []
@@ -125,13 +126,13 @@ class BackboneInitialize
                 @entity.promise = @executeChain(@prepares, params)
                 @entity.promise
                 .done(=>
-                    @launch initHandlers, params...
+                    @launch @entity.firstLaunch, params...
                 )
                 .fail(->
                     console.warn("Backbone initialize prepares fail: ", @prepares);
                 )
                 return
-        @launch initHandlers, params...
+        @launch @entity.firstLaunch, params...
 
     constructor: (@entity)->
         unless @entity.noBind?
