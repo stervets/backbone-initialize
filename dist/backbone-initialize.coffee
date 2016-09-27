@@ -2,6 +2,13 @@ KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 KEY_LENGTH = KEYS.length;
 @BackbonePrepare = BackbonePrepare = []
 
+@BackboneLaunchStatus =
+    INIT: 0x0
+    PREPARE: 0x1
+    PREPARE_FAIL: 0x2
+    READY: 0x4
+
+
 arrayFromString = (string)->
     return string if Array.isArray string
     string.split(',').map (item)-> item.trim()
@@ -46,7 +53,8 @@ class BackboneInitialize
                 defer.resolve()
         )
         .fail(->
-            console.warn("Defer chain fail", promise)
+            console.warn "Deferred chain fail", promise
+            defer.reject()
         )
         defer.promise()
 
@@ -103,9 +111,11 @@ class BackboneInitialize
 
     launch: (initHandlers, params...)->
         @addHandlers() if initHandlers?
+        @entity.launchStatus = BackboneLaunchStatus.READY
         @entity.trigger 'launch', params...
 
     prepares: null
+
     prepareAndLaunch: (params)->
         @entity.firstLaunch = @prepares?
 
@@ -123,13 +133,15 @@ class BackboneInitialize
                 )
 
             if @prepares.length
+                @entity.launchStatus = BackboneLaunchStatus.PREPARE
                 @entity.promise = @executeChain(@prepares, params)
                 @entity.promise
                 .done(=>
                     @launch @entity.firstLaunch, params...
                 )
-                .fail(->
+                .fail(=>
                     console.warn("Backbone initialize prepares fail: ", @prepares);
+                    @entity.launchStatus = BackboneLaunchStatus.PREPARE_FAIL
                 )
                 return
         @launch @entity.firstLaunch, params...
@@ -138,9 +150,11 @@ class BackboneInitialize
         unless @entity.noBind?
             for name, method of @entity when typeof method is 'function'
                 @entity[name] = method.bind @entity
+
         @entity.addHandler = @addHandler.bind @
         @entity.executeChain = @executeChain.bind @
         @handlers = {}
+        @entity.launchStatus = BackboneLaunchStatus.INIT
 
 backboneInitialize = (params...)->
     options = @options
