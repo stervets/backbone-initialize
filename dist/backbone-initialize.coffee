@@ -43,8 +43,11 @@ class BackboneInitialize
         unless defer?
             defer = $.Deferred()
             chain = chain.slice()
+            deferPromise = defer.promise()
+            deferPromise.defer = defer
 
         promise = chain.shift()
+
         $.when(promise.apply(context, params))
         .done(=>
             if chain.length
@@ -56,7 +59,7 @@ class BackboneInitialize
             console.warn "Deferred chain fail", promise
             defer.reject()
         )
-        defer.promise()
+        deferPromise
 
     addListener: (subject, event, handler, context)->
         subject._bbId = genId() unless subject._bbId?
