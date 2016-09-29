@@ -145,8 +145,9 @@ class BackboneInitialize
                 .fail(=>
                     console.warn("Backbone initialize prepares fail: ", @prepares);
                     @entity.launchStatus = BackboneLaunchStatus.PREPARE_FAIL
+                    @entity.onLaunchFail params... if typeof @entity.onLaunchFail is 'function'
                 )
-                return
+                return @entity.promise
         @launch @entity.firstLaunch, params...
 
     constructor: (@entity)->

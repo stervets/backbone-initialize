@@ -55,7 +55,7 @@ class TodoItemView extends Marionette.ItemView
         'model.change': 'render'
 
     deleteItem: ->
-        @remove()
+        @model.destroy()
 
     onItemClick: ->
         @model.set('checked', if @model.get('checked') is 'checked' then '' else 'checked')
@@ -78,9 +78,6 @@ class TodoCollectionView extends Marionette.CompositeView
     events:
         'click @ui.addItem': 'onAddItemClick'
         'click @ui.changeLanguage': 'onChangeLanguageClick'
-
-    handlers:
-        'application.changeLanguage': 'render'
 
     onAddItemClick: ->
         @collection.add {}
