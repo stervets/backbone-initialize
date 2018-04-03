@@ -53,7 +53,7 @@ class BackboneInitialize
             if chain.length
                 @executeChain chain, params, context, defer
             else
-                defer.resolve()
+                defer.resolve.apply context, params
         )
         .fail(->
             console.warn "Deferred chain fail", promise
