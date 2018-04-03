@@ -39,7 +39,8 @@ class BackboneInitialize
         (params...)=>
             @executeChain handlers, params
 
-    executeChain: (chain, params, context = @entity, defer)->
+    executeChain: (chain, params, context = @entity, defer, result)->
+        params = params or []
         unless defer?
             defer = $.Deferred()
             chain = chain.slice()
@@ -48,16 +49,16 @@ class BackboneInitialize
 
         promise = chain.shift()
 
-        $.when(promise.apply(context, params))
-        .done(=>
+        $.when(promise.apply(context, params.concat(result or [])))
+        .done((result...)=>
             if chain.length
-                @executeChain chain, params, context, defer
+                @executeChain chain, params, context, defer, result
             else
-                defer.resolve.apply context, params
+                defer.resolve.apply context, params.concat(result or [])
         )
-        .fail(->
+        .fail((result...)->
             console.warn "Deferred chain fail", promise
-            defer.reject()
+            defer.reject.apply context, params.concat(result or [])
         )
         deferPromise
 
