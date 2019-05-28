@@ -1,6 +1,6 @@
 {
   "name": "backbone-initialize",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Custom initialize for backboneJS and marionetteJS",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/stervets/backbone-initialize#readme",
   "dependencies": {
+    "coffee-script": "^1.12.7",
     "gulp": "^3.9.1",
     "gulp-coffee": "^2.3.2",
     "gulp-plumber": "^1.1.0",

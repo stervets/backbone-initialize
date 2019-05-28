@@ -19,12 +19,14 @@ genId = (length = 16, id = '')->
         id += '-' unless !length or length % 4
     id
 
+Backbone.BackboneInitializeNoWarnings = false
+
 class BackboneInitialize
     handlers: null
     entity: null
 
     warn: (message)->
-        console.warn "Backbone-initialize warn: #{message}"
+        console.warn( "Backbone-initialize warn: #{message}") unless Backbone.BackboneInitializeNoWarnings
 
     getChild: (path, event, parent = @entity)->
         child = path.shift()
@@ -57,7 +59,7 @@ class BackboneInitialize
                 defer.resolve.apply context, params.concat(result or [])
         )
         .fail((result...)->
-            console.warn "Deferred chain fail", promise
+            console.warn("Deferred chain fail", promise)  unless Backbone.BackboneInitializeNoWarnings
             defer.reject.apply context, params.concat(result or [])
         )
         deferPromise
@@ -144,7 +146,7 @@ class BackboneInitialize
                     @launch @entity.firstLaunch, params...
                 )
                 .fail(=>
-                    console.warn("Backbone initialize prepares fail: ", @prepares);
+                    console.warn("Backbone initialize prepares fail: ", @prepares)  unless Backbone.BackboneInitializeNoWarnings
                     @entity.launchStatus = BackboneLaunchStatus.PREPARE_FAIL
                     @entity.onLaunchFail params... if typeof @entity.onLaunchFail is 'function'
                 )
