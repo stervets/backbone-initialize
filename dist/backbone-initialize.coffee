@@ -51,18 +51,16 @@ class BackboneInitialize
 
         promise = chain.shift()
 
-        $.when(promise.apply(context, params.concat(result or [])))
-        .done((result...)=>
+        new Promise (resolve, reject)=>
+          try
+            await promise.apply(context, params.concat(result or []))
             if chain.length
-                @executeChain chain, params, context, defer, result
+              @executeChain chain, params, context, defer, result
             else
-                defer.resolve.apply context, params.concat(result or [])
-        )
-        .fail((result...)->
+              resolve.apply context, params.concat(result or [])
+          catch e
             console.warn("Deferred chain fail", promise)  unless Backbone.BackboneInitializeNoWarnings
-            defer.reject.apply context, params.concat(result or [])
-        )
-        deferPromise
+            reject.apply context, params.concat(result or [])
 
     addListener: (subject, event, handler, context)->
         subject._bbId = genId() unless subject._bbId?
@@ -142,10 +140,10 @@ class BackboneInitialize
                 @entity.launchStatus = BackboneLaunchStatus.PREPARE
                 @entity.promise = @executeChain(@prepares, params)
                 @entity.promise
-                .done(=>
+                .then(=>
                     @launch @entity.firstLaunch, params...
                 )
-                .fail(=>
+                .catch(=>
                     console.warn("Backbone initialize prepares fail: ", @prepares)  unless Backbone.BackboneInitializeNoWarnings
                     @entity.launchStatus = BackboneLaunchStatus.PREPARE_FAIL
                     @entity.onLaunchFail params... if typeof @entity.onLaunchFail is 'function'
