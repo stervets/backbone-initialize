@@ -41,26 +41,25 @@ class BackboneInitialize
         (params...)=>
             @executeChain handlers, params
 
-    executeChain: (chain, params, context = @entity, defer, result)->
+    executeChain: (chain, params, context = @entity, result, notAFirstTime)->
         params = params or []
-        unless defer?
-            defer = $.Deferred()
-            chain = chain.slice()
-            deferPromise = defer.promise()
-            deferPromise.defer = defer
+        chain = chain.slice() unless notAFirstTime?
 
-        promise = chain.shift()
+        fn = chain.shift()
 
-        new Promise (resolve, reject)=>
+        promise = new Promise (resolve, reject)=>
           try
-            await promise.apply(context, params.concat(result or []))
+            await fn.apply(context, params.concat(result or []))
             if chain.length
-              @executeChain chain, params, context, defer, result
+              @executeChain chain, params, context, result, true
             else
               resolve.apply context, params.concat(result or [])
           catch e
-            console.warn("Deferred chain fail", promise)  unless Backbone.BackboneInitializeNoWarnings
+            console.warn("Deferred chain fail", fn)  unless Backbone.BackboneInitializeNoWarnings
             reject.apply context, params.concat(result or [])
+
+        promise.fail = promise.catch
+        promise
 
     addListener: (subject, event, handler, context)->
         subject._bbId = genId() unless subject._bbId?
